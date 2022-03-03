@@ -1,10 +1,10 @@
 use config_client::protos::github::com::michaelhenkel::config_controller::pkg::apis::v1::config_controller_client::ConfigControllerClient;
 use config_client::protos::github::com::michaelhenkel::config_controller::pkg::apis::v1::SubscriptionRequest;
 use config_client::protos::github::com::michaelhenkel::config_controller::pkg::apis::v1;
-use config_client::protos::ssd_git::juniper::net::contrail::cn2::contrail::pkg::apis::core::v1alpha1;
 use tonic::transport::Channel;
 use std::error::Error;
 use std::env;
+mod resources;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -38,7 +38,7 @@ async fn consume_response(client: &mut ConfigControllerClient<Channel>) -> Resul
         .into_inner();
     while let Some(response) = stream.message().await? {
         let action = response.action();
-        let res = get_resource(response);
+        let res = resources::get_resource(response);
         match action {
             v1::response::Action::Add => res.add(),
             v1::response::Action::Update => res.update(),
@@ -47,60 +47,4 @@ async fn consume_response(client: &mut ConfigControllerClient<Channel>) -> Resul
     }
     drop(stream);
     Ok(())
-}
-
-fn get_resource(response: v1::Response) -> Box<dyn ProcessResource>{
-    match response.new.unwrap().resource.unwrap() {
-        v1::resource::Resource::VirtualNetwork(res) => Box::new(res),
-        v1::resource::Resource::VirtualMachineInterface(res) =>  Box::new(res),
-        v1::resource::Resource::VirtualRouter(res) =>  Box::new(res),
-    }
-
-}
-
-
-trait ProcessResource {
-    fn kind(&self) -> String;
-    fn add(&self);
-    fn update(&self);
-    fn delete(&self);
-}
- 
-impl ProcessResource for v1alpha1::VirtualNetwork {
-    fn kind(&self) -> String { "VirtualNetwork".to_string() }
-    fn add(&self) { 
-        println!("add for {} {}/{}",self.kind(), self.metadata.as_ref().unwrap().namespace(), self.metadata.as_ref().unwrap().name())
-    }
-    fn update(&self) { 
-        println!("update for {} {}/{}",self.kind(), self.metadata.as_ref().unwrap().namespace(), self.metadata.as_ref().unwrap().name())
-    }
-    fn delete(&self) { 
-        println!("delete for {} {}/{}",self.kind(), self.metadata.as_ref().unwrap().namespace(), self.metadata.as_ref().unwrap().name())
-    }
-}
-
-impl ProcessResource for v1alpha1::VirtualRouter {
-    fn kind(&self) -> String { "VirtualRouter".to_string() }
-    fn add(&self) { 
-        println!("add for {} {}/{}",self.kind(), self.metadata.as_ref().unwrap().namespace(), self.metadata.as_ref().unwrap().name())
-    }
-    fn update(&self) { 
-        println!("update for {} {}/{}",self.kind(), self.metadata.as_ref().unwrap().namespace(), self.metadata.as_ref().unwrap().name())
-    }
-    fn delete(&self) { 
-        println!("delete for {} {}/{}",self.kind(), self.metadata.as_ref().unwrap().namespace(), self.metadata.as_ref().unwrap().name())
-    }
-}
-
-impl ProcessResource for v1alpha1::VirtualMachineInterface {
-    fn kind(&self) -> String { "VirtualMachineInterface".to_string() }
-    fn add(&self) {
-        println!("add for {} {}/{}",self.kind(), self.metadata.as_ref().unwrap().namespace(), self.metadata.as_ref().unwrap().name())
-    }
-    fn update(&self) { 
-        println!("update for {} {}/{}",self.kind(), self.metadata.as_ref().unwrap().namespace(), self.metadata.as_ref().unwrap().name())
-    }
-    fn delete(&self) { 
-        println!("delete for {} {}/{}",self.kind(), self.metadata.as_ref().unwrap().namespace(), self.metadata.as_ref().unwrap().name())
-    }
 }
